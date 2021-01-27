@@ -35,13 +35,17 @@ int valueLux; // Valeur digital du PCS lux
 String etatLux;
 String messageLux;
 
-// PIN du PCS liquide
+// PIN du PCS niveau d'eau
 int pinDigitalWater=D3;
+int waterLevel;
 
 // PIN pompe
 int boutonPompe = D4;
 
 void setup() {
+  pinMode(boutonPompe, OUTPUT);
+  digitalWrite(boutonPompe, LOW);
+  
   Serial.begin(9600);
   Serial.println();
 
@@ -79,10 +83,10 @@ void setup() {
   Serial.println("Initialisation HALJIA");
   pinMode(pinDigitalHALJIA, INPUT);
 
-  //Serial.println("Initialisation CQRobot");
-  //pinMode(pinDigitalWater, INPUT);
+  Serial.println("Initialisation CQRobot");
+  pinMode(pinDigitalWater, INPUT);
 
-  pinMode(boutonPompe, OUTPUT);
+
 }
 
 void loop() {
@@ -120,19 +124,21 @@ void loop() {
     valDigitalKY71=digitalRead(pinDigitalKY71);
     // La valeur analog peut permettre d'être précis sur le taux d'humidité
     // Si la valeur digital est set à 0 alors le sol est suffisamment humide
-    mapAnalogKY71 = map(valAnalogKY71, 0, 1023, 99, 0);
+    mapAnalogKY71 = map(valAnalogKY71, 0, 1023, 0, 100);
     if (valDigitalKY71 == 0) {
-      messageKY71="Plante hydratee";
+      messageKY71="Plante hydratee ";
     } else {
-      messageKY71="Plante en manque d'eau";
+      messageKY71="Plante en manque d'eau ";
     }
     //Serial.println(messageKY71);
 
-    Serial.println("début de pompage");
-    digitalWrite(boutonPompe, HIGH);
-    delay(1000);
-    digitalWrite(boutonPompe, LOW);
-    Serial.println("fin de pompage");
+    if (mapAnalogKY71 < 45) {
+      Serial.println("début de pompage");
+      digitalWrite(boutonPompe, HIGH);
+      delay(1000);
+      digitalWrite(boutonPompe, LOW);
+      Serial.println("fin de pompage");
+    }
     
     // Données HALJIA
     valueLux = digitalRead(pinDigitalHALJIA);
@@ -145,13 +151,13 @@ void loop() {
     }
   
     // Données CQRobot
-    //waterLevel=digitalRead(pinDigitalWater);
-    //Serial.println(waterLevel);
-    //if (waterLevel == 0) {
-    //  Serial.println("Le bac n'a plus d'eau");
-    //} else {
-    //  Serial.println("Le bac contient de l'eau");
-    //}
+    waterLevel=digitalRead(pinDigitalWater);
+    Serial.println(waterLevel);
+    if (waterLevel == 0) {
+      Serial.println("Le bac n'a plus d'eau");
+    } else {
+      Serial.println("Le bac contient de l'eau");
+    }
     
     // Démarcation dans le COM
     Serial.println("Appel");
@@ -172,7 +178,8 @@ void loop() {
   client.println("<html>"); 
   client.println("<h1>Rosier orange :</h1>");
   client.print(messageKY71);
-  client. print(valAnalogKY71);
+  client.print(valAnalogKY71);
+  client.print("/1024");
   client.print(" (");
   client.print(mapAnalogKY71);
   client.print("%)");
